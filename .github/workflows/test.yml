@@ -1,0 +1,82 @@
+---
+name: test
+
+on:
+  push:
+  pull_request:
+
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: "Install dependencies"
+        if: matrix.os == 'macos-latest'
+        run: |
+          brew install coreutils
+
+      - name: Prepare environment for pokeget
+        run: |
+          chmod +x pokeget
+          chmod +x scripts/install.sh
+          chmod +x ./scripts/dev/make_debug.sh
+          ./scripts/dev/make_debug.sh pokeget
+
+      - name: Run usage tests on pokeget
+        run: |
+          ./pokeget 1
+          ./pokeget bulbasaur
+          ./pokeget charmander -partner
+          ./pokeget squirtle -shiny
+          ./pokeget charizard -variant 1 -shiny
+          ./pokeget -random 0
+          ./pokeget -random 3 -partner
+          ./pokeget -random 7 -shiny
+          ./pokeget -shiny 1
+          ./pokeget -small -shiny 1
+          ./pokeget -small 1
+          ./pokeget -variant 1 3
+          ./pokeget -variant 2 6
+          ./pokeget -small -partner 5
+
+      - name: Run script tests on pokeget
+        run: |
+          ./pokeget help
+          ./pokeget version
+          ./pokeget test-net
+
+      - name: Run install script
+        run: |
+          ./scripts/install.sh -y
+
+      - name: Run doctor script
+        run: |
+          exec $SHELL
+          ./scripts/doctor.sh
+
+      - name: Run uninstall script
+        run: ./scripts/uninstall.sh -y
+
+      - name: Prepare environment for pokeget-lite
+        run: |
+          chmod +x pokeget-lite
+          chmod +x ./scripts/dev/make_debug.sh
+          ./scripts/dev/make_debug.sh pokeget-lite
+
+      - name: Run tests on pokeget-lite
+        run: |
+          ./pokeget-lite 1
+          ./pokeget-lite 3
+          ./pokeget-lite 68
+          ./pokeget-lite bulbasaur
+          ./pokeget-lite squirtle
+          ./pokeget-lite charizard

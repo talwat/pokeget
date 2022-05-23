@@ -1,0 +1,72 @@
+---
+name: publishing
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  wait:
+    name: wait
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for all tests to succeed
+        uses: lewagon/wait-on-check-action@v1.1.1
+        with:
+          ref: ${{ github.ref }}
+          running-workflow-name: "wait"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 10
+
+  release:
+    env:
+      COMMIT_MESSAGE: github.event.commits[0].message
+    runs-on: ubuntu-latest
+    if: ${{ startsWith(github.event.commits[0].message, 'Release ') }}
+    needs: [wait]
+
+    steps:
+      - name: "Checkout source code"
+        uses: actions/checkout@v3
+
+      - name: "Install dependencies"
+        run: sudo apt-get install -y dpkg dpkg-dev rpm make
+
+      - name: "Package pokeget"
+        run: |
+          export VERSION=${COMMIT_MESSAGE#*Release }
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          make zipfiles
+
+      - name: Create Release
+        uses: marvinpinto/action-automatic-releases@latest
+
+        with:
+          title: ${{ env.VERSION }}
+          prerelease: false
+          automatic_release_tag: "${{ env.VERSION }}"
+          repo_token: ${{ secrets.RELEASE_TOKEN }}
+          files: |
+            output/*
+
+      - name: Update stable branch
+        uses: devmasx/merge-branch@1.4.0
+        with:
+          type: now
+          from_branch: main
+          target_branch: stable
+          github_token: ${{ github.token }}
+
+  update-testing:
+    runs-on: ubuntu-latest
+    needs: [wait]
+
+    steps:
+      - name: Update testing branch
+        uses: devmasx/merge-branch@1.4.0
+
+        with:
+          type: now
+          from_branch: main
+          target_branch: testing
+          github_token: ${{ github.token }}

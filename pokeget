@@ -1,0 +1,496 @@
+#!/usr/bin/env bash
+
+# Heya! If you want to improve the code, fix bugs, or add new features make a PR on the github repo! https://github.com/talwat/pokeget
+
+# Color variables
+
+GREEN="\x1B[32m"
+YELLOW="\x1B[33m"
+CYAN="\x1B[36m"
+RED="\x1B[31m"
+BOLD="\x1B[1m"
+RESET="\x1B[0m"
+
+# Functions
+
+function check_darwin {
+
+	# Check for macOS/darwin
+	if [[ $OSTYPE == *'darwin'* ]]; then
+
+		# Print $1 as the message if using darwin. $2 is an optional argument which can toggle wether to log or not.
+		if [ -z "$2" ] || [ "$2" = true ]; then
+			log "$RED" "It appears you're using macOS (darwin), $1."
+		fi
+		return 0
+	fi
+	return 1
+}
+
+# Network functions
+
+function view_net {
+
+	# Run curl command and save output to /tmp/pokeget-curl-output
+	command curl "$1" --silent --show-error >/tmp/pokeget-curl-output 2>&1
+
+	# Save exit code to check if the curl command was successful
+	curl_success=$?
+
+	# Read curl output
+	curl_output=$(cat /tmp/pokeget-curl-output)
+
+	# Check if curl command was not successful. If it was print an error message and exit with code 1
+	if [ "$curl_success" != 0 ]; then
+		log "$RED" "Could not get $1. Error: ${curl_output#*curl\: ("$curl_success") }"
+		rm /tmp/pokeget-curl-output
+		exit 1
+	elif [ "$curl_output" = "404: Not Found" ]; then
+		log "$RED" "404 Error, $1 not found."
+		exit 1
+	fi
+
+	# Remove curl output file and echo result
+	rm /tmp/pokeget-curl-output
+	echo "$curl_output"
+}
+
+function download_file {
+
+	# Run curl command and save command output to /tmp/pokeget-curl-output
+	command curl "$1" --silent --show-error --output "$2" >/tmp/pokeget-curl-output 2>&1
+
+	# Save exit code to check if the curl command was successful
+	curl_success=$?
+
+	# Read curl output
+	curl_output=$(cat /tmp/pokeget-curl-output)
+
+	# Check if curl command was not successful. If it was print an error message and exit with code 1
+	if [ "$curl_success" != 0 ]; then
+		log "$RED" "Could not get $1. Error: ${curl_output#*curl\: ("$curl_success") }"
+		rm /tmp/pokeget-curl-output
+		exit 1
+	elif [ "$curl_output" = "404: Not Found" ]; then
+		log "$RED" "404 Error, $1 not found."
+		exit 1
+	fi
+
+	# Remove curl output file
+	rm /tmp/pokeget-curl-output
+}
+
+function run_script {
+
+	# View script and save output from view_net
+	if script_output=$(view_net "$1"); then
+
+		# If successful run the script
+		bash <(echo "$script_output") "${@:2}"
+	else
+
+		# If not successful echo the output
+		echo "$script_output"
+		exit 1
+	fi
+}
+
+# Logging functions
+
+function debug_log {
+
+	# Run echo if debug is enabled
+	if [ "$debug" = true ]; then
+		log "$YELLOW" "$1"
+	fi
+}
+
+function log {
+	echo -e "$1[!]${RESET} $2"
+}
+
+function get_pokemon {
+
+	# Check if the input is a national dex pkmn_id or a pokemon name
+	if [[ $1 =~ ^[0-9]+$ ]]; then
+		is_pkmn_name=false
+	else
+		is_pkmn_name=true
+	fi
+
+	# Parse the pkmn_id/Name
+	if [ $is_pkmn_name = false ]; then
+		pkmn_id="$1"
+		length=${#pkmn_id}
+
+		# Loop until the pokemon pkmn_id's length is three. This makes '3' '003', '25' '025', etc...
+		while ((length < 3)); do
+			pkmn_id=0$pkmn_id
+			length=${#pkmn_id}
+		done
+	else
+		pkmn_id=$(echo "$1" | tr '[:upper:]' '[:lower:]')
+	fi
+
+	# Disable certain options if get_vanilla is true.
+	if [ "$get_vanilla" = true ]; then
+		back=false
+		variant=""
+	fi
+
+	# Options that work with any config
+	if [ "$shiny" = true ]; then
+		pkmn_id="${pkmn_id}s"
+	fi
+
+	# Apply values from flags & config file.
+	if [ "$small" = true ]; then
+		size="small"
+
+	# Apply other flags if the small option is false. This is because small sprites don't have back sprites and shiny sprites
+	else
+		size="big"
+		if [ $back = true ]; then
+			pkmn_id="${pkmn_id}b"
+		fi
+	fi
+	if [ "$variant" != "" ]; then
+		pkmn_id="${pkmn_id}_${variant}"
+	fi
+
+	folder_name="pokemon"
+
+	# Append to folder name if getting from the vanilla sprites
+	if [ "$get_vanilla" = true ]; then
+		folder_name="${folder_name}_vanilla"
+	fi
+
+	# Append to folder name based on wether input was a pokemon name or a pokemon ID
+	if [ $is_pkmn_name = true ]; then
+		debug_log "Input is a pokemon name"
+		folder_name="${folder_name}_named"
+	fi
+
+	# Put together the final URL
+	url="https://raw.githubusercontent.com/talwat/pokeget-sprites/main/${folder_name}/${size}/${pkmn_id}.txt"
+
+	# Get final sprite from the internet or cache if caching is enabled
+	if [ "$cache" = true ]; then
+		path="$HOME/.cache/pokeget/sprites/${folder_name}/${size}"
+		file_path="$path/${pkmn_id}.txt"
+
+		# Debug info
+		debug_log "File Path: $file_path"
+
+		# Make cache folder if it doesn't exist
+		mkdir -p "$path"
+
+		# Check if it's possible to get the sprite from the cache, if not, then get it from the internet and save it to the cache for next time
+		if [ ! -f "$file_path" ]; then
+			debug_log "URL: $url"
+			debug_log "Saving to cache..."
+
+			download_file "$url" "$file_path"
+		fi
+
+		debug_log "Getting from cache"
+
+		# Set response
+		response=$(cat "$file_path")
+
+	else
+		# Debug info
+		debug_log "URL: $url"
+
+		# Set response
+		response=$(view_net "$url")
+	fi
+
+	# Return output or 404 message
+	if [[ $response == *"404"* ]] || [[ $response == *"No such file or directory"* ]]; then
+		log "$RED" "Pokemon could not be found (404 Error/cat Error)$RESET"
+		exit 1
+	else
+		final_pokemon_sprite="$response"
+	fi
+}
+
+# Check if the input was a command
+case $1 in
+
+# No command
+"")
+	log "$CYAN" "Use ${BOLD}pokeget help${RESET} to see usage."
+	exit 0
+	;;
+
+# Version command
+version)
+	log "$CYAN" "pokeget 1.9 ${BASH_SOURCE[0]}"
+	exit 0
+	;;
+
+# Help command
+help)
+	echo -e "${BOLD}pokeget${RESET} [flags] <pokemon pkmn_id/pokemon name>"
+	echo -e "${BOLD}PS${RESET}: This program requires internet to work."
+	echo ""
+	echo -e "${BOLD}${CYAN}Commands${RESET}"
+	echo -e "  ${BOLD}help:${RESET}           Displays this menu."
+	echo -e "  ${BOLD}update:${RESET}         Updates pokeget."
+	echo -e "  ${BOLD}uninstall:${RESET}      Uninstalls pokeget."
+	echo -e "  ${BOLD}doctor:${RESET}         Runs the doctor script."
+	echo -e "  ${BOLD}clear-cache:${RESET}    Clears the cache folder."
+	echo -e "  ${BOLD}clear-tmp:${RESET}      Clears temporary files generated by pokeget."
+	echo -e "  ${BOLD}get-man:${RESET}        Downloads and installs the manual pages for pokeget."
+	echo -e "${BOLD}${CYAN}Flags${RESET}"
+	echo -e "  ${BOLD}-small:${RESET}         Makes the pokemon a smaller sprite. in the pokemon games, this would be the sprite found when browsing the pokemon storage system."
+	echo -e "  ${BOLD}-big:${RESET}           Makes the pokemon a big sprite. in the pokemon games, this would be the sprite found of your opponents pokemon while battling."
+	echo -e "  ${BOLD}-back:${RESET}          Makes the pokemon the back sprite. in the pokemon games, this would be the sprite found of your pokemon while battling. Only works on big sprites."
+	echo -e "  ${BOLD}-front:${RESET}         Makes the pokemon the front sprite. in the pokemon games, this would be the sprite found of your opponents pokemon while battling. Only works on big sprites."
+	echo -e "  ${BOLD}-shiny:${RESET}         Dictates wether the pokemon is shiny, only works on big sprites. (NOTE: the shiny colors are from pokemon reborn, so a lot of them are completely different than the normal shiny colors.)"
+	echo -e "  ${BOLD}-not-shiny:${RESET}      Makes the pokemon not shiny."
+	echo -e "  ${BOLD}-partner:${RESET}       Makes two of the same pokemon instead of just one."
+	echo -e "  ${BOLD}-variant <num>:${RESET} This flag dictates the following things: wether the pokemon is mega, alolan form, pokemon specific things such as arceus, and a few other things."
+	echo -e "  ${BOLD}-random <gens>:${RESET} This flag makes a random pokemon. You can specify what generations the random pokemon will be in, or if you put '0' it will pick a random pokemon from any generation. Random generations should be separated by ',' with no spaces."
+	echo -e "${BOLD}${CYAN}Credits${RESET}"
+	echo "  Pokeget gets its sprites from Pokemon Reborn, which is why there may be some pokemon that look different. "
+	echo -e "  If you do not like this set ${BOLD}get_vanilla${RESET} to true in your config file which will make pokeget use sprites from PokeAPI which have the same look as normal sprites."
+	echo "  All sprites and art are originally made by gamefreak, so huge props to them."
+	echo "  Code written by Talwat in bash."
+	exit 0
+	;;
+
+# Update command
+update)
+
+	# Download pokeget into /tmp
+	rm /tmp/pokeget >/dev/null 2>&1
+	download_file https://raw.githubusercontent.com/talwat/pokeget/testing/pokeget /tmp/pokeget
+	chmod +x /tmp/pokeget
+
+	# Check where to move it & wether it's needed to use sudo
+	if [[ ${BASH_SOURCE[0]} == *"$HOME"* ]]; then
+		log "$CYAN" "Selecting a local update."
+		mv /tmp/pokeget "${BASH_SOURCE[0]}"
+	else
+		log "$CYAN" "Selecting a global update."
+		sudo mv /tmp/pokeget "${BASH_SOURCE[0]}"
+	fi
+
+	log "$GREEN" "Updated pokeget."
+	exit 0
+	;;
+
+# Command to test network functions
+test-net)
+	log "$CYAN" "Running tests..."
+	log "$CYAN" "Testing view_net..."
+	view_net "https://raw.githubusercontent.com/ruanyf/simple-bash-scripts/master/scripts/hello-world.sh" || exit 1
+
+	log "$CYAN" "Testing download_file..."
+	download_file "https://raw.githubusercontent.com/ruanyf/simple-bash-scripts/master/scripts/hello-world.sh" "/tmp/test-download" || exit 1
+	cat /tmp/test-download || exit 1
+
+	log "$CYAN" "Testing run_script..."
+	run_script "https://raw.githubusercontent.com/ruanyf/simple-bash-scripts/master/scripts/hello-world.sh" || exit 1
+
+	log "$CYAN" "Cleaning up..."
+	rm /tmp/test-download
+
+	log "$GREEN" "Net function testing complete!"
+	;;
+
+# Uninstall command
+uninstall)
+
+	run_script https://raw.githubusercontent.com/talwat/pokeget/main/scripts/uninstall.sh
+	exit 0
+	;;
+
+# Doctor command
+doctor)
+	run_script https://raw.githubusercontent.com/talwat/pokeget/main/scripts/doctor.sh
+	exit 0
+	;;
+
+# Clear cache command
+clear-cache)
+	log "$CYAN" "Clearing cache..."
+	rm -rf "$HOME/.cache/pokeget"
+	log "$GREEN" "Cache cleared."
+	exit 0
+	;;
+
+# Clear temporary files command
+clear-tmp)
+	log "$CYAN" "Clearing temporary files generated by pokeget..."
+	rm "/tmp/pokeget-*"
+	log "$GREEN" "Temporary files cleared."
+	;;
+
+# Get pokemon
+*)
+
+	# Configurable variables
+	small=false       # The default size value.
+	shiny=false       # The default shiny value.
+	back=false        # The default back value.
+	debug=false       # The default debug value.
+	variant=""        # The default variant value.
+	random_gens=()    # The default random_gens value.
+	get_vanilla=false # The default get_vanilla value.
+	cache=false       # The default cache value.
+	partner=false     # The default partner value.
+
+	# Non-configurable variables
+	variant_ask=false
+	random_ask=false
+	raw_pkmn_id=0
+
+	# Make config file.
+	if [ ! -d "$HOME/.config/pokeget" ]; then
+		mkdir "$HOME/.config/pokeget"
+	fi
+	if [ ! -f "$HOME/.config/pokeget/pokeget.conf" ]; then
+		echo "# Determines wether the sprite is the small (pc/box) sprite. Doesn't work with 'shiny' and 'back'.
+small=false
+
+# Determines wether the sprite will use the shiny variant.
+shiny=false
+
+# Determines wether the sprite will be facing backwards.
+back=false
+
+# The variant of the sprite. Determines megas, pokemon specific things like arceus, alolan forms, etc...
+variant=\"\"
+
+# Use vanilla sprites, not pokemon reborn sprites. This will make shinies normal and small sprites look better, but it will remove back sprites and variants.
+get_vanilla=false
+
+# Enable caching, this will cache the sprites for later use.
+cache=false
+" >"$HOME/.config/pokeget/pokeget.conf"
+	fi
+
+	# Import config file
+	source "$HOME/.config/pokeget/pokeget.conf"
+
+	# Get Flags & Input by looping through all arguments and checking value in a switch statement
+	for var; do
+		case $var in
+		-small)
+			small=true
+			;;
+		-big)
+			small=false
+			;;
+		-shiny)
+			shiny=true
+			;;
+		-notshiny)
+			shiny=false
+			;;
+		-back)
+			back=true
+			;;
+		-front)
+			back=false
+			;;
+		-variant)
+			variant_ask=true
+			;;
+		-debug)
+			debug=true
+			;;
+		-random)
+			random_ask=true
+			;;
+		-partner)
+			partner=true
+			;;
+		-*)
+			log "$RED" "Invalid flag"
+			exit 1
+			;;
+		*)
+
+			# Check if the variant flag has been called to set the variant value
+			if [ $variant_ask = true ]; then
+				variant="$var"
+				variant_ask=false
+
+			# Check if the random flag has been called to set the random value
+			elif [ $random_ask = true ]; then
+
+				# Splits $var with ',' as the seperator and assigns it to random_gens
+				IFS=',' read -ra random_gens <<<"$var"
+
+			# If no flags which require another value have been called, set the raw pokemon ID
+			else
+				raw_pkmn_id=$var
+			fi
+			;;
+		esac
+	done
+
+	# Generate random number
+	if [ "${random_gens[0]}" != "" ]; then
+		if check_darwin "" false; then
+
+			# shellcheck disable=SC2016
+			debug_log 'Using $RANDOM for random number generation'
+
+			# Generate random number to pick the generation from the input
+			random_gen_num=$((RANDOM % ${#random_gens[@]}))
+
+			# Use the random number to pick a generation
+			final_random_gen=${random_gens[$random_gen_num]}
+
+			# Debug info
+			debug_log "random_gen_num: $random_gen_num
+${YELLOW}[!]${RESET} final_random_gen: $final_random_gen
+${YELLOW}[!]${RESET} random_gens: ${random_gens[0]}"
+
+			# Random values
+			random_gen_max_values=("807" "151" "251" "386" "493" "649" "721" "807" "898")
+			random_gen_min_values=("0" "0" "152" "252" "387" "494" "650" "722" "808")
+
+			# Get a random pokemon from the random generation
+			raw_pkmn_id=$((RANDOM % (${random_gen_max_values[$final_random_gen]} - ${random_gen_min_values[$final_random_gen]}) + ${random_gen_min_values[$final_random_gen]}))
+		else
+			debug_log "Using shuf for random number generation"
+
+			# Generate random number to pick the generation from the input
+			random_gen_num=$(shuf -i 0-${#random_gens[@]} -n 1)
+
+			# Subtract 1 from the random number generated to pick the generation
+			random_gen_num=$((random_gen_num - 1))
+
+			# Use the random number to pick a generation
+			final_random_gen=${random_gens[$random_gen_num]}
+
+			# Debug info
+			debug_log "random_gen_num: $random_gen_num
+${YELLOW}[!]${RESET} final_random_gen: $final_random_gen
+${YELLOW}[!]${RESET} random_gens: ${random_gens[0]}"
+
+			# Random values
+			random_gen_values=("0-807" "0-151" "152-251" "252-386" "387-493" "494-649" "650-721" "722-807" "809-898")
+
+			# Get a random pokemon from the random generation
+			raw_pkmn_id=$(shuf -i "${random_gen_values[$final_random_gen]}" -n 1)
+		fi
+	fi
+
+	get_pokemon "$raw_pkmn_id"
+
+	# Put another sprite next to the first one if partner is true
+	if [ $partner = true ]; then
+		final_pokemon_sprite=$(paste <(echo "${final_pokemon_sprite}") <(echo "${final_pokemon_sprite}"))
+	fi
+
+	echo -e "$final_pokemon_sprite$RESET"
+	exit 0
+	;;
+esac

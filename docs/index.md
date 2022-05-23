@@ -9,6 +9,7 @@
 ![GitHub contributors](https://img.shields.io/github/contributors/talwat/pokeget)
 [![GitHub issues](https://img.shields.io/github/issues/talwat/pokeget)](https://github.com/talwat/pokeget/issues)
 ![GitHub closed pull requests](https://img.shields.io/github/issues-pr-closed/talwat/pokeget)
+![In homebrew/core](https://img.shields.io/badge/In%20homebrew%2Fcore%3F-no-red)
 
 pokeget is a bash script you can use to display cool sprites of pokemon in your terminal.
 
@@ -50,7 +51,7 @@ You can also use `pokeget-lite` if you think normal pokeget is bloated and you w
 
 ## Installation
 
-You can go to [INSTALLING.md](INSTALLING.md) for instructions.
+You can go to [INSTALLING.md](https://talwat.github.io/pokeget/installing) for instructions.
 
 ## Uninstallation
 
@@ -86,7 +87,7 @@ The help command is `pokeget help`, if you need to get a quick reminder.
 
 You can do `pokeget <pokemon national dex id>` to display the sprite.
 
-If you want a list of flags, you can look at [USAGE.md](USAGE.md).
+If you want a list of flags, you can look at [USAGE.md](https://talwat.github.io/pokeget/usage).
 
 ## Dependencies
 
@@ -121,11 +122,11 @@ This helped a lot to be able to get pokemon with sprites instead of national dex
 
 ## Developing
 
-You can go to [DEVELOPING.md](DEVELOPING.md) for developer documentation.
+You can go to [DEVELOPING.md](https://talwat.github.io/pokeget/developing) for developer documentation.
 
 ## Other projects
 
-If theres an other project you want to see a comparison to, you can go to [OTHER_PROJECTS.md](OTHER_PROJECTS.md).
+If theres an other project you want to see a comparison to, you can go to [OTHER_PROJECTS.md](https://talwat.github.io/pokeget/other_projects).
 
 If a project you think should be compared/mentioned, open an issue or a pull request and I can add a chapter about it.
 
@@ -139,7 +140,7 @@ It can actually run on zsh, but it's still not recommended.
 
 ### Hey, isn't this similar to [pokemon-colorscripts?](https://gitlab.com/phoneybadger/pokemon-colorscripts/)
 
-See [OTHER_PROJECTS.md](OTHER_PROJECTS.md#pokemon-colorscripts) for some info about this.
+See [OTHER_PROJECTS.md](https://talwat.github.io/pokeget/other_projects#pokemon-colorscripts) for some info about this.
 
 ## Todo
 

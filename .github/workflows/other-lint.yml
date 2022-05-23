@@ -1,0 +1,36 @@
+---
+name: other-lint
+
+on:
+  push:
+  pull_request:
+
+  workflow_dispatch:
+
+jobs:
+  markdown:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: avto-dev/markdown-lint@v1.5.0
+
+  yaml:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v3
+      - uses: actions/setup-python@v2
+
+      - name: Install yamllint
+        run: pip install --user yamllint
+
+      - name: Lint normal yaml files
+        run: yamllint .
+
+      - name: Install actionlint
+        id: get_actionlint
+        run: bash <(curl https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+
+      - name: Run actionlint
+        run: ${{ steps.get_actionlint.outputs.executable }} -color -shellcheck=
