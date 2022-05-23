@@ -1,14 +1,8 @@
 # pokeget
 
-[![GitHub stars](https://img.shields.io/github/stars/talwat/pokeget)](https://github.com/talwat/pokeget/stargazers)
-![GitHub watchers](https://img.shields.io/github/watchers/talwat/pokeget)
-[![GitHub forks](https://img.shields.io/github/forks/talwat/pokeget)](https://github.com/talwat/pokeget/network)
 ![GitHub Action](https://img.shields.io/github/workflow/status/talwat/pokeget/pre-commit)
 [![GitHub license](https://img.shields.io/github/license/talwat/pokeget)](https://github.com/talwat/pokeget)
 ![GitHub last commit](https://img.shields.io/github/last-commit/talwat/pokeget)
-![GitHub contributors](https://img.shields.io/github/contributors/talwat/pokeget)
-[![GitHub issues](https://img.shields.io/github/issues/talwat/pokeget)](https://github.com/talwat/pokeget/issues)
-![GitHub closed pull requests](https://img.shields.io/github/issues-pr-closed/talwat/pokeget)
 
 pokeget is a bash script you can use to display cool sprites of pokemon in your terminal.
 
