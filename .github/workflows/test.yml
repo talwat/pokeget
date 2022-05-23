@@ -56,6 +56,7 @@ jobs:
 
       - name: Run install script
         run: |
+          chmod +x ./scripts/install.sh
           ./scripts/install.sh -y
 
       - name: Run doctor script
@@ -64,7 +65,9 @@ jobs:
           ./scripts/doctor.sh
 
       - name: Run uninstall script
-        run: ./scripts/uninstall.sh -y
+        run: |
+          chmod +x ./scripts/uninstall.sh
+          ./scripts/uninstall.sh -y
 
       - name: Prepare environment for pokeget-lite
         run: |

@@ -15,12 +15,12 @@ jobs:
         with:
           ref: ${{ github.ref }}
           running-workflow-name: "wait"
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          repo-token: ${{ secrets.RELEASE_TOKEN }}
           wait-interval: 10
 
   release:
     env:
-      COMMIT_MESSAGE: github.event.commits[0].message
+      COMMIT_MESSAGE: ${{ github.event.commits[0].message }}
     runs-on: ubuntu-latest
     if: ${{ startsWith(github.event.commits[0].message, 'Release ') }}
     needs: [wait]
@@ -29,8 +29,13 @@ jobs:
       - name: "Checkout source code"
         uses: actions/checkout@v3
 
-      - name: "Install dependencies"
-        run: sudo apt-get install -y dpkg dpkg-dev rpm make
+      - name: "Set Environment Variables"
+        run: |
+          export VERSION=${COMMIT_MESSAGE#*Release }
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+          echo "VERSION: $VERSION"
+          echo "COMMIT_MESSAGE: $COMMIT_MESSAGE"
 
       - name: "Package pokeget"
         run: |
