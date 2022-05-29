@@ -53,13 +53,13 @@ If pokeget is still functioning normally you can do `pokeget uninstall`
 If pokeget isn't working you can use the uninstall script by doing:
 
 ```bash
-bash <(curl -s https://raw.githubusercontent.com/talwat/pokeget/testing/scripts/uninstall.sh)
+bash <(curl -s https://raw.githubusercontent.com/talwat/pokeget/main/scripts/uninstall.sh)
 ```
 
 in your shell to remove a local installation, and to remove a system wide installation do:
 
 ```bash
-sudo bash <(curl -s https://raw.githubusercontent.com/talwat/pokeget/testing/scripts/uninstall.sh)
+sudo bash <(curl -s https://raw.githubusercontent.com/talwat/pokeget/main/scripts/uninstall.sh)
 ```
 
 *Keep in mind if you did a **system wide installation** all users who used pokeget will have to delete their pokeget config files manually*
@@ -158,11 +158,3 @@ It goes **MAJOR.SEMI-MAJOR.MINOR.BUILD**.
 It does not require empty `0`'s to be added to the end of the version number.
 
 So you would do `1.8` not `1.8.0.0`.
-
-## Branches
-
-There are 3 branches.
-
-The **main** branch, which is a development branch.
-The **testing** branch, which is updated only when a commit passed all the tests.
-And a **stable** branch, which is updated every time there is a new release.

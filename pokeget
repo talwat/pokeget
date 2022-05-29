@@ -226,7 +226,7 @@ case $1 in
 
 # Version command
 version)
-	log "$CYAN" "pokeget 1.9 ${BASH_SOURCE[0]}"
+	log "$CYAN" "pokeget 1.9.1 ${BASH_SOURCE[0]}"
 	exit 0
 	;;
 
@@ -266,7 +266,7 @@ update)
 
 	# Download pokeget into /tmp
 	rm /tmp/pokeget >/dev/null 2>&1
-	download_file https://raw.githubusercontent.com/talwat/pokeget/testing/pokeget /tmp/pokeget
+	download_file https://raw.githubusercontent.com/talwat/pokeget/main/pokeget /tmp/pokeget
 	chmod +x /tmp/pokeget
 
 	# Check where to move it & wether it's needed to use sudo
