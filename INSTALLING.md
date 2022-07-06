@@ -44,7 +44,7 @@ yay -S pokeget-git
 To run the install script you can run:
 
 ```bash
-bash <(curl -s https://raw.githubusercontent.com/talwat/pokeget/testing/scripts/install.sh)
+bash <(curl -s https://raw.githubusercontent.com/talwat/pokeget/main/scripts/install.sh)
 ```
 
 Which should also offer you to setup `~/.local/bin` in PATH.
