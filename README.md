@@ -1,6 +1,6 @@
-# pokeget
+# There's a [new pokeget](https://github.com/talwat/pokeget-rs) in town which you should use instead!
 
-## Warning: I have stopped maintaining this project, it was an amazing learning experience but it's gotten far to complex for a simple shell script. Please use other programs. pokeget also lacks certain features. Goodbye! 👋
+# Old README:
 
 ![GitHub Action](https://img.shields.io/github/workflow/status/talwat/pokeget/pre-commit)
 [![GitHub license](https://img.shields.io/github/license/talwat/pokeget)](https://github.com/talwat/pokeget)
